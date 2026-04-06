@@ -1,0 +1,341 @@
+/* ================================
+   ClipVault — main stylesheet
+   Place in: static/style.css
+   Link in base.html:
+   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+   ================================ */
+
+/* Reset & base */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: sans-serif;
+    background: #f5f5f5;
+    color: #111;
+    line-height: 1.6;
+}
+
+a {
+    color: #111;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ================================
+   Navbar
+   ================================ */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px;
+    background: white;
+    border-bottom: 1px solid #eee;
+}
+
+.logo {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111;
+    text-decoration: none;
+}
+
+.nav-links {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.nav-links a {
+    font-size: 14px;
+    color: #555;
+    text-decoration: none;
+    padding: 7px 14px;
+    border-radius: 7px;
+    transition: background 0.15s;
+}
+
+.nav-links a:hover {
+    background: #f5f5f5;
+    text-decoration: none;
+}
+
+/* ================================
+   Buttons
+   ================================ */
+.btn-primary {
+    background: #111;
+    color: white !important;
+    padding: 11px 24px;
+    border-radius: 8px;
+    text-decoration: none !important;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    display: inline-block;
+    transition: background 0.15s;
+}
+
+.btn-primary:hover {
+    background: #333;
+}
+
+.btn-secondary {
+    background: white;
+    color: #111 !important;
+    border: 1px solid #ddd;
+    padding: 11px 24px;
+    border-radius: 8px;
+    text-decoration: none !important;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-block;
+    margin-left: 8px;
+    transition: background 0.15s;
+}
+
+.btn-secondary:hover {
+    background: #f5f5f5;
+}
+
+/* ================================
+   Hero section (home page)
+   ================================ */
+.hero {
+    text-align: center;
+    padding: 80px 24px;
+}
+
+.hero h1 {
+    font-size: 36px;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: 12px;
+    line-height: 1.2;
+}
+
+.hero p {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 28px;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* ================================
+   Auth pages (login / register)
+   ================================ */
+.auth-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 60px 16px;
+}
+
+.auth-card {
+    background: white;
+    border-radius: 12px;
+    padding: 36px 32px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.auth-card h1 {
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+
+.auth-card p {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+.auth-card label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #444;
+}
+
+.auth-card input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    font-family: sans-serif;
+    transition: border-color 0.15s;
+}
+
+.auth-card input:focus {
+    outline: none;
+    border-color: #aaa;
+}
+
+.auth-card button {
+    width: 100%;
+    padding: 11px;
+    background: #111;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 4px;
+    font-family: sans-serif;
+    transition: background 0.15s;
+}
+
+.auth-card button:hover {
+    background: #333;
+}
+
+.auth-card .auth-footer {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #666;
+}
+
+/* ================================
+   Error & alert messages
+   ================================ */
+.error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.success {
+    background: #f0fdf4;
+    color: #15803d;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+/* ================================
+   General page container
+   ================================ */
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+/* ================================
+   Upload page
+   ================================ */
+
+   /* add to style.css */
+.upload-area {
+    display: block;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    color: #888;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.upload-area:hover {
+    border-color: #111;
+    color: #111;
+}
+
+.upload-area.selected {
+    border-color: #111;
+    color: #111;
+}
+
+/* ================================
+   Clips listing page
+   ================================ */
+   /* Clips grid */
+.clips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    margin-top: 24px;
+}
+
+.clip-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #eee;
+}
+
+.clip-card video {
+    width: 100%;
+    display: block;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    background: #000;
+}
+
+.clip-info {
+    padding: 12px 16px;
+}
+
+.clip-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: 4px;
+}
+
+.clip-game {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.clip-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.clip-date {
+    font-size: 12px;
+    color: #aaa;
+}
+
+.clip-owner {
+    font-size: 12px;
+    color: #888;
+    font-weight: 500;
+}

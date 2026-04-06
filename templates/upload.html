@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Clipping{% endblock %}
+{% block content %}
+
+<nav class="navbar">
+  <a href="{{ url_for('home') }}" class="logo">Clips</a>
+  <div class="nav-links">
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('clips') }}">My clips</a>
+      <a href="{{ url_for('upload') }}">Upload</a>
+      <a href="{{ url_for('logout') }}">Log out</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">Log in</a>
+      <a href="{{ url_for('register') }}" class="btn-primary">Register</a>
+    {% endif %}
+  </div>
+</nav>
+
+
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <h1>Upload a clip</h1>
+
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" enctype="multipart/form-data">
+                <label class="upload-area" for="file_upload" id="upload-label">
+                    Click to choose a video file
+                </label>
+                <input type="file" id="file_upload" name="file_upload" 
+                    style="display:none" accept="video/*"
+                    onchange="document.getElementById('upload-label').textContent = this.files[0].name; 
+                              document.getElementById('upload-label').classList.add('selected')">
+                <input type="text" name="title" placeholder="Clip title" required>
+                <input type="text" name="game" placeholder="Game name">
+
+                <button class="btn-primary" type="submit">Upload</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+

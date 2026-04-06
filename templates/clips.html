@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Clipping{% endblock %}
+{% block content %}
+
+<nav class="navbar">
+  <a href="{{ url_for('home') }}" class="logo">Clips</a>
+  <div class="nav-links">
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('clips') }}">My clips</a>
+      <a href="{{ url_for('upload') }}">Upload</a>
+      <a href="{{ url_for('logout') }}">Log out</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">Log in</a>
+      <a href="{{ url_for('register') }}" class="btn-primary">Register</a>
+    {% endif %}
+  </div>
+</nav>
+
+<div class="clips-grid">
+  {% for clip in clips %}
+    <div class="clip-card">
+      <video src="{{ clip.url }}" controls></video>
+      <div class="clip-info">
+        <div class="clip-title">{{ clip.title }}</div>
+        <div class="clip-game">{{ clip.game }}</div>
+        <div class="clip-meta">
+        <div class="clip-date">{{ clip.date.strftime('%B %d, %Y') }}</div>
+        <div class="clip-owner">by {{ clip.owner.username}}</div>
+    </div>
+</div>
+    </div>
+  {% endfor %}
+    {% if not clips %}
+        <p>No clips yet. <a href="{{ url_for('upload') }}">Upload one!</a></p>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+
+
+
+
+{% for clip in clips %}
+    <div>
+        <h3>{{ clip.title }}</h3>
+        <p>{{ clip.game }}</p>
+        <video src="{{ clip.url }}" controls width="100%"></video>
+    </div>
+{% endfor %}
+
+{% if not clips %}
+    <p>No clips yet. <a href="{{ url_for('upload') }}">Upload one!</a></p>
+{% endif %}
