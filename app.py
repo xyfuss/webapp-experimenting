@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from flask import Flask, render_template, request, redirect, url_for
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy, extension
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from dotenv import load_dotenv
@@ -24,8 +25,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER')
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
 db = SQLAlchemy(app)
+
+migrate = Migrate(app, db)
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -54,6 +58,9 @@ def load_user(user_id):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if os.environ.get('REGISTRATION_ENABLED', 'true').lower() == 'false':
+        return redirect(url_for('login'))
+
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     
