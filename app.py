@@ -58,6 +58,9 @@ def load_user(user_id):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if os.environ.get('REGISTRATION_ENABLED', 'true').lower() == 'false':
+        return redirect(url_for('login'))
+
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     
