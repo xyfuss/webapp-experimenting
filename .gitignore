@@ -1,5 +1,5 @@
 .env
-users.db
+instance/users.db
 __pycache__/
 *.pyc
 .DS_Store
