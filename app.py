@@ -97,7 +97,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
             return render_template('login.html', error='Invalid username or password.')
-        if user and bcrypt.checkpw(password.encode('utf-8'), user.password):
+        if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
             login_user(user)
             return redirect(url_for('home'))
     return render_template('login.html')
