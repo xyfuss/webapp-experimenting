@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Clipping{% endblock %}
+{% block content %}
+
+<nav class="navbar">
+  <a href="{{ url_for('home') }}" class="logo">Clips</a>
+  <div class="nav-links">
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('clips') }}">My clips</a>
+      <a href="{{ url_for('upload') }}">Upload</a>
+      <a href="{{ url_for('logout') }}">Log out</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">Log in</a>
+      <a href="{{ url_for('register') }}" class="btn-primary">Register</a>
+    {% endif %}
+  </div>
+</nav>
+
+<section class="hero">
+  {% if current_user.is_authenticated %}
+    <h1>Welcome back, {{ current_user.username }}!</h1>
+    <p>Ready to upload your next clip?</p>
+    <a href="{{ url_for('upload') }}" class="btn-primary">Upload a clip</a>
+    <a href="{{ url_for('clips') }}" class="btn-secondary">My collection</a>
+  {% else %}
+    <h1>Your game clips, all in one place</h1>
+    <p>Upload, organise and share your best gaming moments.</p>
+    <a href="{{ url_for('register') }}" class="btn-primary">Get started</a>
+    <a href="{{ url_for('clips') }}" class="btn-secondary">Browse clips</a>
+  {% endif %}
+</section>
+
+{% endblock %}
