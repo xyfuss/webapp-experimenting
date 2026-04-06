@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import email
 from flask import Flask, render_template, request, redirect, url_for
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy, extension
@@ -38,7 +39,7 @@ login_manager.login_view = 'login'
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
 
 class Clip(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -78,9 +79,9 @@ def register():
         if existing_user:
             return render_template('register.html', error='Username already taken.')
 
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-        new_user = User(username=username, password=hashed_password)
-        db.session.add(new_user)
+        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        user = User(username=username, password=hashed.decode('utf-8'))
+        db.session.add(user)
         db.session.commit()
         return redirect(url_for('login'))
     return render_template('register.html')
@@ -94,7 +95,7 @@ def login():
         username = request.form['username']
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
-        if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password):
+        if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
             return render_template('login.html', error='Invalid username or password.')
         if user and bcrypt.checkpw(password.encode('utf-8'), user.password):
             login_user(user)
