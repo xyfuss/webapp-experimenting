@@ -151,7 +151,7 @@ def upload():
 @app.route('/clips')
 @login_required
 def clips():
-    all_clips = Clip.query.filter_by(user_id=current_user.id).all()
+    all_clips = Clip.query.order_by(Clip.date.desc()).all()
     return render_template('clips.html', clips=all_clips)
 
 with app.app_context():
