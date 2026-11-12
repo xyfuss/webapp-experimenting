@@ -90,6 +90,23 @@
                             return;
                         }
                         console.log('File uploaded successfully:', key);
+
+                        const title = form.querySelector('input[name="title"]').value;
+                        const game = form.querySelector('input[name="game"]').value;
+                        const completeRes = await fetch('/upload/complete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ key, title, game })
+                        })
+                        const completeData = await completeRes.json();
+                        if (!completeRes.ok) {
+                            alert(completeData.error || 'Failed to complete upload');
+                            return;
+                        }
+                        console.log('Upload complete:', completeData);
+                        window.location.href = '/clips';
                     });
                 </script>
                 <input type="text" name="title" placeholder="Clip title" required>

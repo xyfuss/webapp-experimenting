@@ -9,7 +9,8 @@ import os
 import bcrypt
 import boto3
 import uuid
-from botocore.client import Config
+import re
+from botocore.client import Config, ClientError
 from werkzeug.utils import secure_filename
 
 load_dotenv()
@@ -23,6 +24,8 @@ s3 = boto3.client(
 )
 
 ALLOWED_TYPES = {'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'video/x-matroska': 'mkv'}
+KEY_PATTERN = re.compile(r'^[0-9a-f]{32}\.(mp4|webm|mov|mkv)$')
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -179,6 +182,41 @@ def upload_sign():
     )
         
     return jsonify(url=url, key=key)
+
+@app.route('/upload/complete', methods=['POST'])
+@login_required
+def upload_complete():
+    data = request.get_json(silent=True) or {}
+    key = data.get('key')
+    title = str(data.get('title') or '').strip()[:150] or 'Untitled Clip'
+    game = str(data.get('game') or '').strip()[:150]
+    url = f"{os.environ.get('R2_PUBLIC_URL')}/{key}"
+
+    if not key or not KEY_PATTERN.match(key):
+        return {'error': 'Invalid key'}, 400
+
+    try:
+        head = s3.head_object(Bucket=os.environ.get('R2_BUCKET_NAME'), Key=key)
+    except ClientError:
+        return {'error': 'File not found in storage'}, 400
+
+    if head['ContentLength'] > app.config['MAX_CONTENT_LENGTH']:
+        s3.delete_object(Bucket=os.environ.get('R2_BUCKET_NAME'), Key=key)
+        return {'error': 'File too large. Max 50MB.'}, 400
+
+    if Clip.query.filter_by(url=url).first():
+        return {'error': 'Clip already exists'}, 400
+
+    new_clip = Clip(
+        title=title,
+        game=game,
+        url=url,
+        user_id=current_user.id,
+    )
+    db.session.add(new_clip)
+    db.session.commit()
+
+    return jsonify(ok=True, clip_id=new_clip.id)
 
 @app.route('/clips')
 @login_required
