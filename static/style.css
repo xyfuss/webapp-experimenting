@@ -101,6 +101,24 @@ a:hover {
     background: #f5f5f5;
 }
 
+.delete-btn {
+    background: none;
+    border: 1px solid #ddd;
+    color: #888;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.delete-btn:hover {
+    color: #c0392b;
+    border-color: #c0392b;
+    background: #fdf2f1;
+}
+
 /* ================================
    Hero section (home page)
    ================================ */
