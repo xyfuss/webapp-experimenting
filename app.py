@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import email
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy, extension
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -21,6 +21,8 @@ s3 = boto3.client(
     aws_secret_access_key=os.environ.get('R2_SECRET_ACCESS_KEY'),
     config=Config(signature_version='s3v4')
 )
+
+ALLOWED_TYPES = {'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'video/x-matroska': 'mkv'}
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -151,6 +153,32 @@ def upload():
         return redirect(url_for('clips'))
     
     return render_template('upload.html')
+
+@app.route('/upload/sign', methods=['POST'] )
+@login_required
+def upload_sign():
+
+    data = request.get_json(silent=True) or {}
+    filename = data.get('filename')
+    content_type = data.get('content_type')
+    size = data.get('size')
+
+    if not content_type:
+        return {'error': 'Missing filename or content type'}, 400
+    if content_type not in ALLOWED_TYPES:
+        return {'error': 'Invalid content type'}, 400
+    if not isinstance(size, int) or size <= 0 or size > app.config['MAX_CONTENT_LENGTH']:
+       return {'error': 'Invalid file size (max 50MB).'}, 400
+    
+    key = f"{uuid.uuid4().hex}.{ALLOWED_TYPES[content_type]}"
+        
+    url = s3.generate_presigned_url(
+        'put_object',
+        Params={'Bucket': os.environ.get('R2_BUCKET_NAME'), 'Key': key, 'ContentType': content_type},
+        ExpiresIn=300,
+    )
+        
+    return jsonify(url=url, key=key)
 
 @app.route('/clips')
 @login_required
