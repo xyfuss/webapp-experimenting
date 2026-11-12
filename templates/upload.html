@@ -30,9 +30,85 @@
                     Click to choose a video file
                 </label>
                 <input type="file" id="file_upload" name="file_upload" 
-                    style="display:none" accept="video/*"
-                    onchange="document.getElementById('upload-label').textContent = this.files[0].name; 
-                              document.getElementById('upload-label').classList.add('selected')">
+                    style="display:none" accept="video/*">
+
+                <script>
+                    const form = document.querySelector('form');
+                    const input = document.getElementById('file_upload');
+                    const label = document.getElementById('upload-label');
+
+                    input.addEventListener('change', () => {
+                        if (!input.files[0]) return;
+                        label.textContent = input.files[0].name;
+                        label.classList.add('selected');
+                    });
+
+                    form.addEventListener('submit', async e => {
+                        e.preventDefault();
+                        const file = input.files[0];
+                        if (!file) {
+                            alert('Please select a file to upload.');
+                            return;
+                        }
+
+                        const res = await fetch('/upload/sign', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                filename: file.name,
+                                content_type: file.type,
+                                size: file.size
+                            })
+                        })
+                        const data = await res.json();
+                        if (!res.ok) {
+                            alert(data.error || 'Failed to get signed URL');
+                            return;
+                        }
+                        console.log('Signed URL data:', data);
+                        const { url, key } = data;
+
+                        let putRes;
+                        try {
+                            putRes = await fetch(url, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': file.type
+                                },
+                                body: file
+                            });
+                        } catch (err) {
+                            console.error('Error uploading file:', err);
+                            alert('Failed to upload file');
+                            return;
+                        }
+                        if (!putRes.ok) {
+                            console.error('Upload failed:', putRes.statusText);
+                            alert('Failed to upload file');
+                            return;
+                        }
+                        console.log('File uploaded successfully:', key);
+
+                        const title = form.querySelector('input[name="title"]').value;
+                        const game = form.querySelector('input[name="game"]').value;
+                        const completeRes = await fetch('/upload/complete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ key, title, game })
+                        })
+                        const completeData = await completeRes.json();
+                        if (!completeRes.ok) {
+                            alert(completeData.error || 'Failed to complete upload');
+                            return;
+                        }
+                        console.log('Upload complete:', completeData);
+                        window.location.href = '/clips';
+                    });
+                </script>
                 <input type="text" name="title" placeholder="Clip title" required>
                 <input type="text" name="game" placeholder="Game name">
 

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import email
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy, extension
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -9,7 +9,8 @@ import os
 import bcrypt
 import boto3
 import uuid
-from botocore.client import Config
+import re
+from botocore.client import Config, ClientError
 from werkzeug.utils import secure_filename
 
 load_dotenv()
@@ -21,6 +22,10 @@ s3 = boto3.client(
     aws_secret_access_key=os.environ.get('R2_SECRET_ACCESS_KEY'),
     config=Config(signature_version='s3v4')
 )
+
+ALLOWED_TYPES = {'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'video/x-matroska': 'mkv'}
+KEY_PATTERN = re.compile(r'^[0-9a-f]{32}\.(mp4|webm|mov|mkv)$')
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -120,37 +125,68 @@ def home():
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
-    if request.method == 'POST':
-        file = request.files.get('file_upload')
-        if len(file.read()) > app.config['MAX_CONTENT_LENGTH']:
-            return render_template('upload.html', error='File too large. Max 50MB.')
-        file.seek(0) 
-        if not file or file.filename == '':
-            return render_template('upload.html', error='No file selected.')
-        
-        extension = file.filename.rsplit('.', 1)[1].lower()
-        filename = f"{uuid.uuid4().hex}.{extension}"
-        
-        s3.upload_fileobj(
-            file,
-            os.environ.get('R2_BUCKET_NAME'),
-            filename,
-            ExtraArgs={'ContentType': file.content_type}
-        )
-        
-        url = f"{os.environ.get('R2_ENDPOINT_URL')}/{os.environ.get('R2_BUCKET_NAME')}/{filename}"
-        
-        new_clip = Clip(
-            title=request.form.get('title', 'Untitled Clip'),
-            game=request.form.get('game', ''),
-            url = f"{os.environ.get('R2_PUBLIC_URL')}/{filename}",
-            user_id=current_user.id
-        )
-        db.session.add(new_clip)
-        db.session.commit()
-        return redirect(url_for('clips'))
-    
     return render_template('upload.html')
+
+@app.route('/upload/sign', methods=['POST'] )
+@login_required
+def upload_sign():
+
+    data = request.get_json(silent=True) or {}
+    filename = data.get('filename')
+    content_type = data.get('content_type')
+    size = data.get('size')
+
+    if not content_type:
+        return {'error': 'Missing filename or content type'}, 400
+    if content_type not in ALLOWED_TYPES:
+        return {'error': 'Invalid content type'}, 400
+    if not isinstance(size, int) or size <= 0 or size > app.config['MAX_CONTENT_LENGTH']:
+       return {'error': 'Invalid file size (max 50MB).'}, 400
+    
+    key = f"{uuid.uuid4().hex}.{ALLOWED_TYPES[content_type]}"
+        
+    url = s3.generate_presigned_url(
+        'put_object',
+        Params={'Bucket': os.environ.get('R2_BUCKET_NAME'), 'Key': key, 'ContentType': content_type},
+        ExpiresIn=300,
+    )
+        
+    return jsonify(url=url, key=key)
+
+@app.route('/upload/complete', methods=['POST'])
+@login_required
+def upload_complete():
+    data = request.get_json(silent=True) or {}
+    key = data.get('key')
+    title = str(data.get('title') or '').strip()[:150] or 'Untitled Clip'
+    game = str(data.get('game') or '').strip()[:150]
+    url = f"{os.environ.get('R2_PUBLIC_URL')}/{key}"
+
+    if not key or not KEY_PATTERN.match(key):
+        return {'error': 'Invalid key'}, 400
+
+    try:
+        head = s3.head_object(Bucket=os.environ.get('R2_BUCKET_NAME'), Key=key)
+    except ClientError:
+        return {'error': 'File not found in storage'}, 400
+
+    if head['ContentLength'] > app.config['MAX_CONTENT_LENGTH']:
+        s3.delete_object(Bucket=os.environ.get('R2_BUCKET_NAME'), Key=key)
+        return {'error': 'File too large. Max 50MB.'}, 400
+
+    if Clip.query.filter_by(url=url).first():
+        return {'error': 'Clip already exists'}, 400
+
+    new_clip = Clip(
+        title=title,
+        game=game,
+        url=url,
+        user_id=current_user.id,
+    )
+    db.session.add(new_clip)
+    db.session.commit()
+
+    return jsonify(ok=True, clip_id=new_clip.id)
 
 @app.route('/clips')
 @login_required
