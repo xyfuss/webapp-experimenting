@@ -125,36 +125,6 @@ def home():
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
-    if request.method == 'POST':
-        file = request.files.get('file_upload')
-        if len(file.read()) > app.config['MAX_CONTENT_LENGTH']:
-            return render_template('upload.html', error='File too large. Max 50MB.')
-        file.seek(0) 
-        if not file or file.filename == '':
-            return render_template('upload.html', error='No file selected.')
-        
-        extension = file.filename.rsplit('.', 1)[1].lower()
-        filename = f"{uuid.uuid4().hex}.{extension}"
-        
-        s3.upload_fileobj(
-            file,
-            os.environ.get('R2_BUCKET_NAME'),
-            filename,
-            ExtraArgs={'ContentType': file.content_type}
-        )
-        
-        url = f"{os.environ.get('R2_ENDPOINT_URL')}/{os.environ.get('R2_BUCKET_NAME')}/{filename}"
-        
-        new_clip = Clip(
-            title=request.form.get('title', 'Untitled Clip'),
-            game=request.form.get('game', ''),
-            url = f"{os.environ.get('R2_PUBLIC_URL')}/{filename}",
-            user_id=current_user.id
-        )
-        db.session.add(new_clip)
-        db.session.commit()
-        return redirect(url_for('clips'))
-    
     return render_template('upload.html')
 
 @app.route('/upload/sign', methods=['POST'] )
