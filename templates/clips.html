@@ -24,6 +24,9 @@
         <div class="clip-title">{{ clip.title }}</div>
         <div class="clip-game">{{ clip.game }}</div>
         <div class="clip-meta">
+        {% if current_user.is_authenticated and clip.user_id == current_user.id %}
+          <button class="delete-btn" data-clip-id="{{ clip.id }}">Delete</button>
+        {% endif %}
         <div class="clip-date">{{ clip.date.strftime('%B %d, %Y') }}</div>
         <div class="clip-owner">by {{ clip.owner.username}}</div>
     </div>
@@ -34,7 +37,36 @@
         <p>No clips yet. <a href="{{ url_for('upload') }}">Upload one!</a></p>
     {% endif %}
 </div>
-
+<script>
+  const deleteButtons = document.querySelectorAll('.delete-btn');
+  deleteButtons.forEach(button => {
+    button.addEventListener('click', async () => {
+      const clipId = button.getAttribute('data-clip-id');
+      if (confirm('Are you sure you want to delete this clip?')) {
+        const res = await fetch(`/clip/${clipId}/delete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          button.closest('.clip-card').remove();
+        } else {
+          let errorMsg = 'Failed to delete clip.';
+          try {
+            const errorData = await res.json();
+            if (errorData.error) {
+              errorMsg = errorData.error;
+            }
+          } catch {
+            // Ignore JSON parse errors
+          }
+          alert(errorMsg);
+        }
+      }
+    });
+  });
+</script>
 {% endblock %}
 
 
