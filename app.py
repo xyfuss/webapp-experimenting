@@ -5,6 +5,8 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy, extension
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_wtf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 import os
 import bcrypt
@@ -13,6 +15,7 @@ import uuid
 import re
 from botocore.client import Config, ClientError
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv()
 
@@ -49,6 +52,15 @@ csrf = CSRFProtect(app)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -76,6 +88,7 @@ def load_user(user_id):
 
 
 @app.route('/register', methods=['GET', 'POST'])
+@limiter.limit("5 per hour", methods=["POST"])
 def register():
     if os.environ.get('REGISTRATION_ENABLED', 'true').lower() == 'false':
         return redirect(url_for('login'))
@@ -112,39 +125,50 @@ def register():
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute; 30 per hour", methods=["POST"], deduct_when=lambda response: response.status_code != 302)
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
+
+        if len(password.encode('utf-8')) > 72:
+            return render_template('login.html', error='Invalid username or password.')  
+
         if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
             return render_template('login.html', error='Invalid username or password.')
+        
         if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
             login_user(user)
             return redirect(url_for('home'))
+        
     return render_template('login.html')
 
 @app.route('/logout')
 @login_required
+@limiter.exempt
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
 @app.route('/')
 @login_required
+@limiter.exempt
 def home():
     return render_template('home.html', username=current_user.username)
 
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
+@limiter.exempt
 def upload():
     return render_template('upload.html')
 
 @app.route('/upload/sign', methods=['POST'] )
 @login_required
+@limiter.limit("20 per minute", methods=["POST"])
 def upload_sign():
 
     data = request.get_json(silent=True) or {}
@@ -171,6 +195,7 @@ def upload_sign():
 
 @app.route('/upload/complete', methods=['POST'])
 @login_required
+@limiter.limit("20 per minute", methods=["POST"])
 def upload_complete():
     data = request.get_json(silent=True) or {}
     key = data.get('key')
@@ -206,6 +231,7 @@ def upload_complete():
 
 @app.route('/clip/<int:clip_id>/delete', methods=['POST'])
 @login_required
+@limiter.exempt
 def delete_clip(clip_id):
     clip = Clip.query.get_or_404(clip_id)
     key = clip.url.split('/')[-1]
@@ -228,9 +254,21 @@ def delete_clip(clip_id):
 
 @app.route('/clips')
 @login_required
+@limiter.exempt
 def clips():
     all_clips = Clip.query.order_by(Clip.date.desc()).all()
     return render_template('clips.html', clips=all_clips)
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    error_message = "Too many requests. Please try again later."
+
+    if request.path == '/login':
+        return render_template('login.html', error=error_message), 429
+    if request.path == '/register':
+        return render_template('register.html', error=error_message), 429
+
+    return jsonify(error=error_message), 429
 
 with app.app_context():
     db.create_all()
