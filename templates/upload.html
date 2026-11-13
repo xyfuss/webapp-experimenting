@@ -44,6 +44,9 @@ content %}
         const input = document.getElementById("file_upload");
         const label = document.getElementById("upload-label");
         const btn = document.querySelector(".btn-primary.upload-btn");
+        const csrfToken = document.querySelector(
+          'meta[name="csrf-token"]',
+        ).content;
 
         input.addEventListener("change", () => {
           if (!input.files[0]) return;
@@ -65,6 +68,7 @@ content %}
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken,
             },
             body: JSON.stringify({
               filename: file.name,
@@ -100,6 +104,7 @@ content %}
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken,
             },
             body: JSON.stringify({ key, title, game }),
           });
