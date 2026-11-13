@@ -36,6 +36,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
 }
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
@@ -187,6 +188,28 @@ def upload_complete():
     db.session.commit()
 
     return jsonify(ok=True, clip_id=new_clip.id)
+
+@app.route('/clip/<int:clip_id>/delete', methods=['POST'])
+@login_required
+def delete_clip(clip_id):
+    clip = Clip.query.get_or_404(clip_id)
+    key = clip.url.split('/')[-1]
+
+    if clip.user_id != current_user.id:
+        return {'error': 'Unauthorized'}, 403
+
+    db.session.delete(clip)
+    db.session.commit()
+    
+    if KEY_PATTERN.match(key):
+        try:
+            s3.delete_object(Bucket=os.environ.get('R2_BUCKET_NAME'), Key=key)
+        except ClientError:
+            app.logger.warning(f"Failed to delete {key} from storage")
+    else:
+        app.logger.warning(f"Invalid key format for {key}, skipping deletion from storage")
+
+    return jsonify(ok=True)
 
 @app.route('/clips')
 @login_required
