@@ -4,6 +4,7 @@ from flask import Flask, jsonify, render_template, request, redirect, url_for
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy, extension
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
 import os
 import bcrypt
@@ -25,6 +26,7 @@ s3 = boto3.client(
 
 ALLOWED_TYPES = {'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'video/x-matroska': 'mkv'}
 KEY_PATTERN = re.compile(r'^[0-9a-f]{32}\.(mp4|webm|mov|mkv)$')
+COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'true').lower() == 'true'
 
 
 app = Flask(__name__)
@@ -36,9 +38,15 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
 }
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-db = SQLAlchemy(app)
 
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = COOKIE_SECURE
+app.config['REMEMBER_COOKIE_SECURE'] = COOKIE_SECURE
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['WTF_CSRF_TIME_LIMIT'] = None
+
+csrf = CSRFProtect(app)
+db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
@@ -76,7 +84,7 @@ def register():
         return redirect(url_for('home'))
     
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
 
         if not username or not password:
@@ -84,10 +92,17 @@ def register():
 
         if len(password) < 8:
             return render_template('register.html', error='Password must be at least 8 characters.')
+
+        if len(password.encode('utf-8')) > 72:
+            return render_template('register.html', error='Password is too long (max 72 bytes).')
+
+        if len(username) > 30 or len(username) < 3:
+            return render_template('register.html', error='Username must be between 3 and 30 characters.')
         
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
             return render_template('register.html', error='Username already taken.')
+
 
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         user = User(username=username, password=hashed.decode('utf-8'))

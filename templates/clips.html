@@ -38,6 +38,7 @@ content %}
 </div>
 <script>
   const deleteButtons = document.querySelectorAll(".delete-btn");
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
   deleteButtons.forEach((button) => {
     button.addEventListener("click", async () => {
       const clipId = button.getAttribute("data-clip-id");
@@ -46,6 +47,7 @@ content %}
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
           },
         });
         if (res.ok) {
